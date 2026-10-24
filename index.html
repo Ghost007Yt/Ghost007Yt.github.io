@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Punto de Equilibrio</title>
+    <!-- Incluimos la librería para hacer gráficos en la web -->
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Verdana', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .contenedor {
+            background-color: #2d2d2d;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            text-align: center;
+            width: 100%;
+            max-width: 450px;
+        }
+        h2 {
+            color: #FFD700;
+            margin-bottom: 25px;
+            font-size: 1.5rem;
+        }
+        .campo {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background-color: #444;
+            color: #fff;
+            box-sizing: border-box;
+        }
+        .botones {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 48%;
+        }
+        .btn-calcular {
+            background-color: #2e7d32;
+            color: white;
+        }
+        .btn-graficar {
+            background-color: #c62828;
+            color: white;
+        }
+        .resultados {
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid #555;
+            text-align: left;
+        }
+        .contenedor-grafica {
+            margin-top: 20px;
+            background-color: #ffffff;
+            border-radius: 6px;
+            padding: 10px;
+            display: none; /* Oculto hasta presionar graficar */
+        }
+    </style>
+</head>
+<body>
+
+<div class="contenedor">
+    <h2>PUNTO DE EQUILIBRIO</h2>
+    
+    <div class="campo">
+        <label for="precio">Precio de venta:</label>
+        <input type="number" id="precio" placeholder="0.00" value="34">
+    </div>
+    
+    <div class="campo">
+        <label for="variables">Costos variables:</label>
+        <input type="number" id="variables" placeholder="0.00" value="23">
+    </div>
+    
+    <div class="campo">
+        <label for="fijos">Costos fijos:</label>
+        <input type="number" id="fijos" placeholder="0.00" value="23">
+    </div>
+    
+    <div class="botones">
+        <button class="btn-calcular" onclick="calcularPuntoEquilibrio()">Calcular</button>
+        <button class="btn-graficar" onclick="generarGrafica()">Graficar</button>
+    </div>
+    
+    <div class="resultados">
+        <p><strong>Unidades de equilibrio:</strong> <span id="res-unidades">-</span></p>
+        <p><strong>Ventas de equilibrio:</strong> <span id="res-ventas">-</span></p>
+    </div>
+
+    <!-- Espacio visual donde se dibujará la gráfica -->
+    <div class="contenedor-grafica" id="box-grafica">
+        <canvas id="miGrafica"></canvas>
+    </div>
+</div>
+
+<script>
+    let graficoInstancia = null;
+
+    function calcularPuntoEquilibrio() {
+        const precio = parseFloat(document.getElementById('precio').value);
+        const variables = parseFloat(document.getElementById('variables').value);
+        const fijos = parseFloat(document.getElementById('fijos').value);
+        
+        if (isNaN(precio) || isNaN(variables) || isNaN(fijos)) {
+            alert("Por favor, llene todos los campos con números válidos.");
+            return null;
+        }
+        if (precio <= variables) {
+            alert("El precio de venta debe ser mayor que los costos variables.");
+            return null;
+        }
+        
+        const unidades = fijos / (precio - variables);
+        const ventas = unidades * precio;
+        
+        document.getElementById('res-unidades').innerText = unidades.toFixed(2);
+        document.getElementById('res-ventas').innerText = "$" + ventas.toFixed(2);
+
+        return { unidades, precio, variables, fijos };
+    }
+
+    function generarGrafica() {
+        const datos = calcularPuntoEquilibrio();
+        if (!datos) return;
+
+        // Mostrar el contenedor de la gráfica
+        document.getElementById('box-grafica').style.display = 'block';
+
+        // Definir rangos de unidades para la gráfica (desde 0 hasta el doble del punto de equilibrio)
+        const peUnidades = datos.unidades;
+        const limiteUnidades = Math.ceil(peUnidades * 2) || 10;
+        
+        const etiquetas = [];
+        const costosTotales = [];
+        const ingresosTotales = [];
+
+        for (let i = 0; i <= limiteUnidades; i += Math.max(1, Math.round(limiteUnidades / 5))) {
+            etiquetas.push(i);
+            costosTotales.push(datos.fijos + (datos.variables * i));
+            ingresosTotales.push(datos.precio * i);
+        }
+
+        // Si ya había una gráfica dibujada anteriormente, la borramos para crear la nueva
+        if (graficoInstancia) {
+            graficoInstancia.destroy();
+        }
+
+        const ctx = document.getElementById('miGrafica').getContext('2d');
+        graficoInstancia = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: etiquetas,
+                datasets: [
+                    {
+                        label: 'Ingresos Totales',
+                        data: ingresosTotales,
+                        borderColor: '#2e7d32',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Costos Totales',
+                        data: costosTotales,
+                        borderColor: '#c62828',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { title: { display: true, text: 'Unidades' } },
+                    y: { title: { display: true, text: 'Dinero ($)' } }
+                }
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
