@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Punto de Equilibrio</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Verdana', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .contenedor {
+            background-color: #2d2d2d;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            text-align: center;
+            width: 100%;
+            max-width: 450px;
+        }
+        h2 {
+            color: #FFD700;
+            margin-bottom: 25px;
+            font-size: 1.5rem;
+        }
+        .campo {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background-color: #444;
+            color: #fff;
+            box-sizing: border-box;
+        }
+        .botones {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 48%;
+        }
+        .btn-calcular {
+            background-color: #2e7d32;
+            color: white;
+        }
+        .btn-graficar {
+            background-color: #c62828;
+            color: white;
+        }
+        .resultados {
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid #555;
+            text-align: left;
+            margin-bottom: 15px;
+        }
+        .contenedor-grafica {
+            margin-top: 20px;
+            background-color: #222222;
+            border-radius: 6px;
+            padding: 15px;
+            display: none;
+            border: 1px solid #444;
+        }
+        svg {
+            background-color: #222;
+            width: 100%;
+            height: 250px;
+        }
+        .eje { stroke: #ffffff; stroke-width: 2; }
+        .red { stroke: #ff5252; stroke-width: 3; fill: none; }
+        .green { stroke: #4caf50; stroke-width: 3; fill: none; }
+        .texto-grafica { fill: #ffffff; font-size: 10px; font-family: sans-serif; }
+    </style>
+</head>
+<body>
+
+<div class="contenedor">
+    <h2>PUNTO DE EQUILIBRIO</h2>
+    
+    <div class="campo">
+        <label for="precio">Precio de venta:</label>
+        <input type="number" id="precio" placeholder="0.00" value="23">
+    </div>
+    
+    <div class="campo">
+        <label for="variables">Costos variables:</label>
+        <input type="number" id="variables" placeholder="0.00" value="112">
+    </div>
+    
+    <div class="campo">
+        <label for="fijos">Costos fijos:</label>
+        <input type="number" id="fijos" placeholder="0.00" value="32">
+    </div>
+    
+    <div class="botones">
+        <button class="btn-calcular" onclick="calcularPuntoEquilibrio()">Calcular</button>
+        <button class="btn-graficar" onclick="generarGrafica()">Graficar</button>
+    </div>
+    
+    <div class="resultados">
+        <p><strong>Unidades de equilibrio:</strong> <span id="res-unidades">-</span></p>
+        <p><strong>Ventas de equilibrio:</strong> <span id="res-ventas">-</span></p>
+    </div>
+
+    <!-- Gráfica nativa sin librerías -->
+    <div class="contenedor-grafica" id="box-grafica">
+        <svg id="graficaSvg" viewBox="0 0 400 250">
+            <!-- Ejes -->
+            <line x1="50" y1="20" x2="50" y2="200" class="eje"></line>
+            <line x1="50" y1="200" x2="380" y2="200" class="eje"></line>
+            
+            <!-- Etiquetas fijas de los ejes -->
+            <text x="15" y="110" class="texto-grafica" transform="rotate(-90 25 110)">Quetzales (Q)</text>
+            <text x="180" y="235" class="texto-grafica">Unidades vendidas</text>
+
+            <!-- Líneas dinámicas que pintará JavaScript -->
+            <path id="lineaIngresos" class="green"></path>
+            <path id="lineaCostos" class="red"></path>
+            
+            <!-- Valores dinámicos en los ejes -->
+            <text id="lblYMax" x="10" y="30" class="texto-grafica">Q</text>
+            <text id="lblYMin" x="10" y="195" class="texto-grafica">Q</text>
+            <text id="lblXMax" x="350" y="215" class="texto-grafica">10</text>
+        </svg>
+    </div>
+</div>
+
+<script>
+    function calcularPuntoEquilibrio() {
+        const precio = parseFloat(document.getElementById('precio').value);
+        const variables = parseFloat(document.getElementById('variables').value);
+        const fijos = parseFloat(document.getElementById('fijos').value);
+        
+        if (isNaN(precio) || isNaN(variables) || isNaN(fijos)) {
+            alert("Por favor, llene todos los campos con números válidos.");
+            return null;
+        }
+        
+        const denominador = precio - variables;
+        const unidades = denominador !== 0 ? fijos / denominador : 0;
+        const ventas = unidades * precio;
+        
+        document.getElementById('res-unidades').innerText = unidades.toFixed(2) + " unidades";
+        document.getElementById('res-ventas').innerText = "Q " + ventas.toFixed(2);
+
+        return { unidades, precio, variables, fijos };
+    }
+
+    function generarGrafica() {
+        const datos = calcularPuntoEquilibrio();
+        if (!datos) return;
+
+        document.getElementById('box-grafica').style.display = 'block';
+
+        // Definimos un rango de unidades para dibujar (de 0 a 10 unidades para este caso negativo)
+        const xMin = 0;
+        const xMax = 10;
+
+        // Calcular los valores de dinero reales en los extremos
+        const ingreso0 = datos.precio * xMin;
+        const ingreso10 = datos.precio * xMax;
+        const costo0 = datos.fijos + (datos.variables * xMin);
+        const costo10 = datos.fijos + (datos.variables * xMax);
+
+        // Encontrar el valor más alto y más bajo para acomodar la escala visual
+        const todosLosValores = [ingreso0, ingreso10, costo0, costo10];
+        const yMinVal = Math.min(...todosLosValores);
+        const yMaxVal = Math.max(...todosLosValores);
+        const rangoY = yMaxVal - yMinVal || 1;
+
+        // Función matemática para convertir coordenadas reales a píxeles del SVG (Área útil: X de 50 a 350, Y de 200 a 30)
+        function mapearX(val) { return 50 + ((val - xMin) / (xMax - xMin)) * 300; }
+        function mapearY(val) { return 200 - ((val - yMinVal) / rangoY) * 170; }
+
+        // Coordenadas calculadas para las líneas
+        const x0_px = mapearX(xMin);
+        const x10_px = mapearX(xMax);
+
+        const yIngreso0_px = mapearY(ingreso0);
+        const yIngreso10_px = mapearY(ingreso10);
+        const yCosto0_px = mapearY(costo0);
+        const yCosto10_px = mapearY(costo10);
+
+        // Asignar las rutas a los elementos visuales nativos
+        document.getElementById('lineaIngresos').setAttribute('d', `M ${x0_px} ${yIngreso0_px} L ${x10_px} ${yIngreso10_px}`);
+        document.getElementById('lineaCostos').setAttribute('d', `M ${x0_px} ${yCosto0_px} L ${x10_px} ${yCosto10_px}`);
+
+        // Actualizar los textos de los ejes con los valores reales
+        document.getElementById('lblYMax').textContent = "Q " + Math.round(yMaxVal);
+        document.getElementById('lblYMin').textContent = "Q " + Math.round(yMinVal);
+        document.getElementById('lblXMax').textContent = xMax;
+    }
+</script>
+
+</body>
+</html>
